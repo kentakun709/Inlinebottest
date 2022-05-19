@@ -1,3 +1,8 @@
+from email import message
+from msilib import AMD64
+import CommandList
+
+from asyncio.windows_events import NULL
 from flask import Flask, request, abort
 
 from linebot import (
@@ -40,10 +45,28 @@ def callback():
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
-    line_bot_api.reply_message(
-        event.reply_token,
-        TextSendMessage("aaaWorldnanodaaaabunjinnanoda"))
+    
+    group_id = NULL
 
+    if event.source.type == 'group':
+        if event.source.group_id == "C9f5f4a30a5dd0a0f9c63579c09235d61":
+            group_id = event.source.group_id
+            
+        else:  WithdrawalProcess(event.source.group_id)
 
+    for command in CommandList.CommandList:
+        if message == event.message.text:
+            hoge
+        
+    # line_bot_api.reply_message(
+    #    event.reply_token,
+    #    TextSendMessage("aaaWorldnanodaaaabunjinnanoda"))
+
+    
+#退会処理
+def WithdrawalProcess(group_id):
+    line_bot_api.leave_group(group_id)
+
+    
 if __name__ == "__main__":
     app.run()
