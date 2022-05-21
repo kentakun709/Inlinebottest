@@ -1,33 +1,21 @@
-from email import message
-from msilib import AMD64
-from tokenize import group
-from urllib.parse import _NetlocResultMixinBase
 import CommandList
+import Settings
 
 from asyncio.windows_events import NULL
 from flask import Flask, request, abort
 
-from linebot import (
-    LineBotApi, WebhookHandler
-)
-from linebot.exceptions import (
-    InvalidSignatureError
-)
-from linebot.models import (
-    MessageEvent, TextMessage, TextSendMessage,
-)
+from linebot.exceptions import InvalidSignatureError
+from linebot.models import (MessageEvent, TextMessage, TextSendMessage)
 
 app = Flask(__name__)
 
-line_bot_api = LineBotApi('RtimZ0mxW4QR8Ivf5zvnmo4TAMx446B9TVzL7K7j97F9993PPn79W3vuJc2pd2xATrm+uT31FXuJXU4Tzkns/wgOw/eURcv9QJaz3LrI66iViSoV0tO7E3nTZVxEVNKUmv12phYeIOwJZeayoNuczAdB04t89/1O/w1cDnyilFU=')
-handler = WebhookHandler('1b44e8b733146e212dbb1f1ffa4986a6')
+LINE_BOT_API = Settings.LINE_BOT_API
+LINE_BOT_HANDLER = Settings.LINE_BOT_HANDLER
 
-@app.route("/")
-def test():
-    return "ok" 
+FORCE_GROUP_ID = Settings.FORCE_GROUP_ID
 
 
-@app.route("/callback", methods=['POST'])
+@app.route("/", methods=['POST'])
 def callback():
     # get X-Line-Signature header value
     signature = request.headers['X-Line-Signature']
@@ -38,7 +26,7 @@ def callback():
 
     # handle webhook body
     try:
-        handler.handle(body, signature)
+        LINE_BOT_HANDLER.handle(body, signature)
     except InvalidSignatureError:
         print("Invalid signature. Please check your channel access token/channel secret.")
         abort(400)
@@ -54,7 +42,7 @@ groups = { }
 
 
 ###
-@handler.add(MessageEvent, message=TextMessage)
+@LINE_BOT_HANDLER.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     
     #送信元グループID
@@ -67,7 +55,7 @@ def handle_message(event):
     if event.source.type == 'group':
         group_id = event.source.group_id
         CreateGroupsData(group_id)
-        if group_id != "C9f5f4a30a5dd0a0f9c63579c09235d61":
+        if group_id != FORCE_GROUP_ID:
             WithdrawalProcess(group_id)
     else:
         CreateUsersData(user_id)
@@ -88,10 +76,6 @@ def handle_message(event):
         elif message_text == CommandList.EndCommand:
             # "終了"の場合
             ResetUserModeData(user_id)
-        
-    # line_bot_api.reply_message(
-    #    event.reply_token,
-    #    TextSendMessage("aaaWorldnanodaaaabunjinnanoda"))
 ###
 
 def GroupModeProcess(group_id, message_text):
@@ -100,7 +84,7 @@ def GroupModeProcess(group_id, message_text):
 
 
 def SendAll(group_id, message_text):
-    line_bot_api.broadcast(messages = TextSendMessage(text = message_text))
+    LINE_BOT_API.broadcast(messages = TextSendMessage(text = message_text))
     ResetGroupModeData(group_id)
 
 
@@ -150,7 +134,7 @@ def ResetUserModeData(user_id):
 
 def WithdrawalProcess(group_id):
     # 退会処理
-    line_bot_api.leave_group(group_id)
+    LINE_BOT_API.leave_group(group_id)
 
     
 if __name__ == "__main__":
