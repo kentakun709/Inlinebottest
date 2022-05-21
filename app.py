@@ -24,6 +24,7 @@ handler = WebhookHandler('1b44e8b733146e212dbb1f1ffa4986a6')
 def test():
     return "ok" 
 
+
 @app.route("/callback", methods=['POST'])
 def callback():
     # get X-Line-Signature header value
@@ -41,6 +42,13 @@ def callback():
         abort(400)
 
     return 'OK'
+
+
+""""""
+#揮発性ユーザーデータ
+users = {}
+#揮発性グループデータ
+groups = {}
 
 
 @handler.add(MessageEvent, message=TextMessage)
