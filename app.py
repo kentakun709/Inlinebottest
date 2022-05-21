@@ -96,12 +96,12 @@ def handle_message(event):
 
 def GroupModeProcess(group_id, message_text):
     for mode in CommandList.GroupCommandList:
-        eval(mode + "(message_text)")
-    ResetGroupModeData(group_id)
+        eval(mode + "(group_id, message_text)")
 
 
-def SendAll(message_text):
+def SendAll(group_id, message_text):
     line_bot_api.broadcast(messages = TextSendMessage(text = message_text))
+    ResetGroupModeData(group_id)
 
 
 def GroupModeChange(group_id, message_text):
