@@ -1,5 +1,3 @@
-from enum import Enum
-
 GroupCommandList = {
     'SendAll' : "一斉送信"
 }
