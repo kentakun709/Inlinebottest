@@ -1,5 +1,11 @@
 from enum import Enum
 
-class CommandList(Enum):
-    #0
-    SendAll = "一斉送信"
+GroupCommandList = {
+    'SendAll' : "一斉送信"
+}
+    
+UserCommandList = {
+    'hoge' : "hoge"
+}
+
+EndCommand = "終了"

@@ -1,5 +1,7 @@
 from email import message
 from msilib import AMD64
+from tokenize import group
+from urllib.parse import _NetlocResultMixinBase
 import CommandList
 
 from asyncio.windows_events import NULL
@@ -46,33 +48,108 @@ def callback():
 
 """"""
 #揮発性ユーザーデータ
-users = {}
+users = { }
 #揮発性グループデータ
-groups = {}
+groups = { }
 
 
+###
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     
+    #送信元グループID
     group_id = NULL
+    #送信元ユーザーID
+    user_id = event.source.user_id
+    #送信されたメッセージ
+    message_text = event.message.text
 
     if event.source.type == 'group':
-        if event.source.group_id == "C9f5f4a30a5dd0a0f9c63579c09235d61":
-            group_id = event.source.group_id
-            
-        else:  WithdrawalProcess(event.source.group_id)
+        group_id = event.source.group_id
+        CreateGroupsData(group_id)
+        if group_id != "C9f5f4a30a5dd0a0f9c63579c09235d61":
+            WithdrawalProcess(group_id)
+    else:
+        CreateUsersData(user_id)
 
-    for command in CommandList.CommandList:
-        if message == event.message.text:
-            hoge
+    if group_id != NULL:
+        if groups[group_id]["mode"]["modeName"] == "0":
+            GroupModeChange(group_id, message_text)
+
+        elif message_text == CommandList.EndCommand:
+            # "終了"の場合
+            ResetGroupModeData(group_id)
+        else:
+            GroupModeProcess(group_id, message_text)
+ 
+    else:
+        if users[user_id]["mode"]["modeName"] == "0":
+            UserModeChange(user_id, message_text)
+        elif message_text == CommandList.EndCommand:
+            # "終了"の場合
+            ResetUserModeData(user_id)
         
     # line_bot_api.reply_message(
     #    event.reply_token,
     #    TextSendMessage("aaaWorldnanodaaaabunjinnanoda"))
+###
 
+def GroupModeProcess(group_id, message_text):
+    for mode in CommandList.GroupCommandList:
+        eval(mode + "(message_text)")
+    ResetGroupModeData(group_id)
+
+
+def SendAll(message_text):
+    line_bot_api.broadcast(messages = TextSendMessage(text = message_text))
+
+
+def GroupModeChange(group_id, message_text):
+    # (group_id)のモード変更
+    for command in CommandList.GroupCommandList.values():
+        if command == message_text:
+            groups[group_id]["mode"]["modeName"] = command
+            break
+
+def UserModeChange(user_id, message_text):
+    # (user_id)のモード変更
+    for command in CommandList.UserCommandList.values():
+        if command == message_text:
+            users[user_id]["mode"]["modeName"] = command
+            break
+
+
+def CreateGroupsData(group_id):
+    # グループを追加する
+    if not group_id in groups:
+        groups[group_id] = { }
+        groups[group_id]["mode"] = { }
+        ResetGroupModeData(group_id)
+
+def CreateUsersData(user_id):  
+    # ユーザーを追加する
+    if not user_id in users:
+        users[user_id] = { }
+        users[user_id]["mode"] = { }
+        ResetUserModeData(user_id)
     
-#退会処理
+
+def ResetGroupModeData(group_id):
+    # グループのモード情報をリセットする
+    groups[group_id]["mode"]["modeName"] = "0"
+    groups[group_id]["mode"]["phase"] = 0
+    groups[group_id]["mode"]["Messages"] = []
+    
+
+def ResetUserModeData(user_id):
+    # ユーザーのモード情報をリセットする
+    users[user_id]["mode"]["modeName"] = "0"
+    users[user_id]["mode"]["phase"] = 0
+    users[user_id]["mode"]["messages"] = []
+
+
 def WithdrawalProcess(group_id):
+    # 退会処理
     line_bot_api.leave_group(group_id)
 
     
