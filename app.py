@@ -8,12 +8,16 @@ from linebot.exceptions import InvalidSignatureError
 from linebot.models import (MessageEvent, TextMessage, TextSendMessage)
 
 app = Flask(__name__)
+    
+if __name__ == "__main__":
+    app.run()
+
 
 LINE_BOT_API = Settings.LINE_BOT_API
 LINE_BOT_HANDLER = Settings.LINE_BOT_HANDLER
 
+# 一斉送信権限グループ
 FORCE_GROUP_ID = Settings.FORCE_GROUP_ID
-
 
 @app.route("/", methods=['POST'])
 def callback():
@@ -35,9 +39,10 @@ def callback():
 
 
 """"""
-#揮発性ユーザーデータ
+# 揮発性ユーザーデータ
 users = { }
-#揮発性グループデータ
+
+# 揮発性グループデータ
 groups = { }
 
 
@@ -67,6 +72,7 @@ def handle_message(event):
         elif message_text == CommandList.EndCommand:
             # "終了"の場合
             ResetGroupModeData(group_id)
+            
         else:
             GroupModeProcess(group_id, message_text)
  
@@ -135,7 +141,3 @@ def ResetUserModeData(user_id):
 def WithdrawalProcess(group_id):
     # 退会処理
     LINE_BOT_API.leave_group(group_id)
-
-    
-if __name__ == "__main__":
-    app.run()
