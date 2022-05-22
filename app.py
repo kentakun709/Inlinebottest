@@ -49,10 +49,10 @@ groups = { }
 ###
 @LINE_BOT_HANDLER.add(PostbackEvent)
 def Post_back(event):
-    handle_message(event)
+    Handle_message(event)
 
 @LINE_BOT_HANDLER.add(MessageEvent, message=TextMessage)
-def handle_message(event):
+def Handle_message(event):
     
     #送信元グループID
     group_id = NULL
