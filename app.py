@@ -5,7 +5,7 @@ from asyncio.windows_events import NULL
 from flask import Flask, request, abort
 
 from linebot.exceptions import InvalidSignatureError
-from linebot.models import (MessageEvent, TextMessage, TextSendMessage)
+from linebot.models import (MessageEvent, TextMessage, TextSendMessage, ButtonsTemplate, TemplateSendMessage, PostbackAction, PostbackEvent)
 
 app = Flask(__name__)
     
@@ -47,6 +47,10 @@ groups = { }
 
 
 ###
+@LINE_BOT_HANDLER.add(PostbackEvent)
+def Post_back(event):
+    handle_message(event)
+
 @LINE_BOT_HANDLER.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     
@@ -55,7 +59,10 @@ def handle_message(event):
     #送信元ユーザーID
     user_id = event.source.user_id
     #送信されたメッセージ
-    message_text = event.message.text
+    if event.type != "postback":
+        message_text = event.message.text
+    else:
+        message_text = event.postback.data
 
     if event.source.type == 'group':
         group_id = event.source.group_id
@@ -66,15 +73,16 @@ def handle_message(event):
         CreateUsersData(user_id)
 
     if group_id != NULL:
-        if groups[group_id]["mode"]["modeName"] == "0":
-            GroupModeChange(group_id, message_text)
-
-        elif message_text == CommandList.EndCommand:
+        if message_text in CommandList.EndCommand:
             # "終了"の場合
             ResetGroupModeData(group_id)
+            LINE_BOT_API.reply_message(event.reply_token, TextSendMessage(text = "モードを終了しました。"))
+        
+        elif groups[group_id]["mode"]["modeName"] == "0":
+            GroupModeChange(group_id, message_text, event)
             
         else:
-            GroupModeProcess(group_id, message_text)
+            GroupModeProcess(group_id, message_text, event)
  
     else:
         if users[user_id]["mode"]["modeName"] == "0":
@@ -84,21 +92,57 @@ def handle_message(event):
             ResetUserModeData(user_id)
 ###
 
-def GroupModeProcess(group_id, message_text):
-    for mode in CommandList.GroupCommandList:
-        eval(mode + "(group_id, message_text)")
+def GroupModeProcess(group_id, message_text, event):
+    eval(groups[group_id]["mode"]["modeName"] + "(group_id, message_text, event)")
 
 
-def SendAll(group_id, message_text):
-    LINE_BOT_API.broadcast(messages = TextSendMessage(text = message_text))
-    ResetGroupModeData(group_id)
+def SendAll(group_id, message_text, event):
+    if groups[group_id]["mode"]["phase"] == 0:
+
+        groups[group_id]["mode"]["Messages"].append(message_text)
+        groups[group_id]["mode"]["phase"] = 1
+
+        LINE_BOT_API.reply_message(event.reply_token, messages = TextSendMessage(text = "一斉送信したい言葉を入力してください。"))
+
+    elif groups[group_id]["mode"]["phase"] == 1:
+        
+        groups[group_id]["mode"]["Messages"].append(message_text)
+        groups[group_id]["mode"]["phase"] = 2
+
+        LINE_BOT_API.reply_message(event.reply_token, messages = TemplateSendMessage(
+            alt_text = 'Confirm template',
+            template = ButtonsTemplate(
+                title = '以下の文字列で一斉送信します。',
+                text = message_text,
+                actions = [
+                    PostbackAction(
+                        label='はい',
+                        display_text='はい',
+                        data='Yes'
+                    ),
+                    PostbackAction(
+                        label='終了',
+                        display_text='終了',
+                        data='Exit'
+                    )
+                ]
+            )
+        ))
+    elif groups[group_id]["mode"]["phase"] == 2:
+        
+        groups[group_id]["mode"]["Messages"].append(message_text)
+        groups[group_id]["mode"]["phase"] = 3
+
+        LINE_BOT_API.broadcast(messages = TextSendMessage(text = groups[group_id]["mode"]["Messages"][1]))
+        ResetGroupModeData(group_id)
 
 
-def GroupModeChange(group_id, message_text):
+def GroupModeChange(group_id, message_text, event):
     # (group_id)のモード変更
-    for command in CommandList.GroupCommandList.values():
-        if command == message_text:
-            groups[group_id]["mode"]["modeName"] = command
+    for command in CommandList.GroupCommandList:
+        if command.value == message_text:
+            groups[group_id]["mode"]["modeName"] = command.name
+            GroupModeProcess(group_id, message_text, event)
             break
 
 def UserModeChange(user_id, message_text):

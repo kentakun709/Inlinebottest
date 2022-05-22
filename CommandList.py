@@ -1,9 +1,12 @@
-GroupCommandList = {
-    'SendAll' : "一斉送信"
-}
-    
-UserCommandList = {
-    'hoge' : "hoge"
-}
+from enum import Enum
 
-EndCommand = "終了"
+class GroupCommandList(Enum):
+    SendAll = "一斉送信"
+    
+class UserCommandList(Enum):
+    hoge = "hoge"
+
+EndCommand = {
+    "終了",
+    "Exit"
+}
