@@ -20,7 +20,11 @@ LINE_BOT_HANDLER = Settings.LINE_BOT_HANDLER
 # 一斉送信権限グループ
 FORCE_GROUP_ID = Settings.FORCE_GROUP_ID
 
-@app.route("/", methods=['POST'])
+@app.route("/")
+def hello_world():
+    return "ok"
+
+@app.route("/callback", methods=['POST'])
 def callback():
     # get X-Line-Signature header value
     signature = request.headers['X-Line-Signature']
