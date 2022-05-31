@@ -1,3 +1,4 @@
+from tokenize import group
 import CommandList
 import Settings
 
@@ -73,7 +74,7 @@ def Handle_message(event):
         CreateUsersData(user_id)
 
     if group_id != NULL:
-        if message_text in CommandList.EndCommand:
+        if (message_text in CommandList.EndCommand) and (groups[group_id]["mode"]["modeName"] != '0'):
             # "終了"の場合
             ResetGroupModeData(group_id)
             LINE_BOT_API.reply_message(event.reply_token, TextSendMessage(text = "モードを終了しました。"))
@@ -99,7 +100,6 @@ def GroupModeProcess(group_id, message_text, event):
 def SendAll(group_id, message_text, event):
     if groups[group_id]["mode"]["phase"] == 0:
 
-        groups[group_id]["mode"]["Messages"].append(message_text)
         groups[group_id]["mode"]["phase"] = 1
 
         LINE_BOT_API.reply_message(event.reply_token, messages = TextSendMessage(text = "一斉送信したい言葉を入力してください。"))
@@ -129,12 +129,11 @@ def SendAll(group_id, message_text, event):
             )
         ))
     elif groups[group_id]["mode"]["phase"] == 2:
-        
-        groups[group_id]["mode"]["Messages"].append(message_text)
-        groups[group_id]["mode"]["phase"] = 3
 
-        LINE_BOT_API.broadcast(messages = TextSendMessage(text = groups[group_id]["mode"]["Messages"][1]))
-        ResetGroupModeData(group_id)
+        LINE_BOT_API.broadcast(messages = TextSendMessage(text = groups[group_id]["mode"]["Messages"][0]))
+        
+        groups[group_id]["mode"]["Messages"] = []
+        groups[group_id]["mode"]["phase"] = 1
 
 
 def GroupModeChange(group_id, message_text, event):

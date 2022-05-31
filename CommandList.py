@@ -8,5 +8,7 @@ class UserCommandList(Enum):
 
 EndCommand = {
     "終了",
-    "Exit"
+    "EXIT",
+    "Exit",
+    "exit"
 }
