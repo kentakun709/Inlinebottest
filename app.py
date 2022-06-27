@@ -17,7 +17,7 @@ if __name__ == "__main__":
 LINE_BOT_API = Settings.LINE_BOT_API
 LINE_BOT_HANDLER = Settings.LINE_BOT_HANDLER
 
-# 一斉送信権限グループ  
+# 一斉送信権限グループ
 FORCE_GROUP_ID = Settings.FORCE_GROUP_ID
 
 @app.route("/")
@@ -29,7 +29,7 @@ def callback():
     # get X-Line-Signature header value
     signature = request.headers['X-Line-Signature']
 
-    # get request body as text
+    #et request body as text
     body = request.get_data(as_text=True)
     app.logger.info("Request body: " + body)
 
