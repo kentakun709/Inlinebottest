@@ -4,7 +4,7 @@ class GroupCommandList(Enum):
     SendAll = "一斉送信"
     
 class UserCommandList(Enum):
-    hoge = "hoge"
+    Reserve = "予約"
 
 EndCommand = {
     "終了",

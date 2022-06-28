@@ -1,15 +1,16 @@
 from tokenize import group
 import CommandList
 import Settings
+import FlexMessageCreator
 
 from asyncio.windows_events import NULL
 from flask import Flask, request, abort
 
 from linebot.exceptions import InvalidSignatureError
-from linebot.models import (MessageEvent, TextMessage, TextSendMessage, ButtonsTemplate, TemplateSendMessage, PostbackAction, PostbackEvent)
+from linebot.models import (MessageEvent, TextMessage, TextSendMessage, FlexSendMessage, ButtonsTemplate, TemplateSendMessage, PostbackAction, PostbackEvent)
 
 app = Flask(__name__)
-    
+
 if __name__ == "__main__":
     app.run()
 
@@ -20,11 +21,11 @@ LINE_BOT_HANDLER = Settings.LINE_BOT_HANDLER
 # 一斉送信権限グループ
 FORCE_GROUP_ID = Settings.FORCE_GROUP_ID
 
-@app.route("/")
-def hello_world():
-    return "ok"
+# @app.route("/")
+# def hello_world():
+#     return "ok"
 
-@app.route("/callback", methods=['POST'])
+@app.route("/", methods=['POST'])
 def callback():
     # get X-Line-Signature header value
     signature = request.headers['X-Line-Signature']
@@ -79,7 +80,7 @@ def Handle_message(event):
 
     if group_id != NULL:
         if (message_text in CommandList.EndCommand) and (groups[group_id]["mode"]["modeName"] != '0'):
-            # "終了"の場合
+            # 終了コマンドの場合
             ResetGroupModeData(group_id)
             LINE_BOT_API.reply_message(event.reply_token, TextSendMessage(text = "モードを終了しました。"))
         
@@ -90,25 +91,31 @@ def Handle_message(event):
             GroupModeProcess(group_id, message_text, event)
  
     else:
-        if users[user_id]["mode"]["modeName"] == "0":
-            UserModeChange(user_id, message_text)
-        elif message_text == CommandList.EndCommand:
-            # "終了"の場合
+        if (message_text in CommandList.EndCommand) and (user_id[user_id]["mode"]["modeName"] != '0'):
+            # 終了コマンドの場合
             ResetUserModeData(user_id)
-###
+            LINE_BOT_API.reply_message(event.reply_token, TextSendMessage(text = "モードを終了しました。"))
+
+        elif users[user_id]["mode"]["modeName"] == "0":
+            UserModeChange(user_id, message_text, event)
+
+        else:
+            UserModeProcess(user_id, message_text, event)
+
 
 def GroupModeProcess(group_id, message_text, event):
     eval(groups[group_id]["mode"]["modeName"] + "(group_id, message_text, event)")
 
 
 def SendAll(group_id, message_text, event):
-    if groups[group_id]["mode"]["phase"] == 0:
+    phase = groups[group_id]["mode"]["phase"]
+    if phase == 0:
 
         groups[group_id]["mode"]["phase"] = 1
 
         LINE_BOT_API.reply_message(event.reply_token, messages = TextSendMessage(text = "一斉送信したい言葉を入力してください。"))
 
-    elif groups[group_id]["mode"]["phase"] == 1:
+    elif phase == 1:
         
         groups[group_id]["mode"]["Messages"].append(message_text)
         groups[group_id]["mode"]["phase"] = 2
@@ -132,12 +139,24 @@ def SendAll(group_id, message_text, event):
                 ]
             )
         ))
-    elif groups[group_id]["mode"]["phase"] == 2:
+    elif phase == 2:
 
         LINE_BOT_API.broadcast(messages = TextSendMessage(text = groups[group_id]["mode"]["Messages"][0]))
         
         groups[group_id]["mode"]["Messages"] = []
         groups[group_id]["mode"]["phase"] = 1
+
+
+def UserModeProcess(user_id, message_text, event):
+    eval(users[user_id]["mode"]["modeName"] + "(user_id, message_text, event)")
+
+def Reserve(user_id, message_text, event):
+    phase = users[user_id]["mode"]["phase"]
+    if phase == 0:
+
+        users[user_id]["mode"]["phase"] = 0
+
+        LINE_BOT_API.reply_message(event.reply_token, messages = FlexSendMessage(alt_text = "FlexMessage", contents= FlexMessageCreator.CreateReservFlexMsg()))
 
 
 def GroupModeChange(group_id, message_text, event):
@@ -148,11 +167,12 @@ def GroupModeChange(group_id, message_text, event):
             GroupModeProcess(group_id, message_text, event)
             break
 
-def UserModeChange(user_id, message_text):
+def UserModeChange(user_id, message_text, event):
     # (user_id)のモード変更
-    for command in CommandList.UserCommandList.values():
-        if command == message_text:
-            users[user_id]["mode"]["modeName"] = command
+    for command in CommandList.UserCommandList:
+        if command.value == message_text:
+            users[user_id]["mode"]["modeName"] = command.name
+            UserModeProcess(user_id, message_text, event)
             break
 
 
